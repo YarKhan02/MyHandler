@@ -7,7 +7,7 @@ mod structs;
 
 use tauri::State;
 use serde::Deserialize;
-use chrono::NaiveDate;
+use chrono::Utc;
 
 use crate::db::insert;
 use crate::structs::task_struct::Task;
@@ -16,25 +16,57 @@ use crate::structs::task_struct::Task;
 #[serde(rename_all = "camelCase")]
 struct TaskData {
   title: String,
-  task_date: String,
+  created_at: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DateQuery {
+  date: String,
 }
 
 #[tauri::command]
-fn create_task(payload: TaskData, db: State<db::Database>) -> Result<(), String> {
-  println!("Received task: {} on {}", payload.title, payload.task_date);
+fn create_task(payload: TaskData, db: State<db::Database>) -> Result<Task, String> {
+  println!("Received task: {} on {}", payload.title, payload.created_at);
   
-  // Parse the date string to NaiveDate
-  let task_date = NaiveDate::parse_from_str(&payload.task_date, "%Y-%m-%d")
-    .map_err(|e| format!("Invalid date format: {}", e))?;
+  // Parse ISO 8601 datetime string
+  let created_at = payload.created_at.parse::<chrono::DateTime<Utc>>()
+    .map_err(|e| format!("Invalid datetime format: {}", e))?;
   
   // Use the global database connection
   let conn = db.get_connection();
 
-  let task = Task::new(&payload.title, task_date, None);
+  let task = Task::new(&payload.title, created_at, None);
   insert(&conn, &task).map_err(|e| format!("Failed to insert task: {}", e))?;
   println!("Inserted task: {:?}", task);
 
-  Ok(())
+  Ok(task)
+}
+
+#[tauri::command]
+fn get_tasks_by_date(payload: DateQuery, db: State<db::Database>) -> Result<Vec<Task>, String> {
+  println!("[GET_TASKS_BY_DATE] Querying tasks for date: {}", payload.date);
+  
+  // Parse ISO 8601 datetime string and get the date
+  let date_time = payload.date.parse::<chrono::DateTime<Utc>>()
+    .map_err(|e| format!("Invalid datetime format: {}", e))?;
+  
+  // Get date at start of day (00:00:00) and end of day (23:59:59)
+  let start_of_day = date_time.date_naive().and_hms_opt(0, 0, 0)
+    .ok_or("Failed to create start of day")?
+    .and_utc();
+  let end_of_day = date_time.date_naive().and_hms_opt(23, 59, 59)
+    .ok_or("Failed to create end of day")?
+    .and_utc();
+  
+  println!("[GET_TASKS_BY_DATE] Date range: {} to {}", start_of_day, end_of_day);
+  
+  let conn = db.get_connection();
+  let tasks = db::query_tasks_by_date_range(&conn, start_of_day, end_of_day)
+    .map_err(|e| format!("Failed to query tasks: {}", e))?;
+  
+  println!("[GET_TASKS_BY_DATE] Found {} tasks", tasks.len());
+  Ok(tasks)
 }
 
 fn main() {
@@ -53,7 +85,7 @@ fn main() {
         }
       }
     })
-    .invoke_handler(tauri::generate_handler![create_task])
+    .invoke_handler(tauri::generate_handler![create_task, get_tasks_by_date])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }

@@ -24,7 +24,7 @@ export const tauriCommands = {
     const result = await invoke('create_task', { 
       payload: {
         title, 
-        taskDate: taskDate.toISOString()
+        createdAt: taskDate.toISOString()
       }
     });
     return parseTask(result);

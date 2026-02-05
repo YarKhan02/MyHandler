@@ -35,7 +35,7 @@ impl Database {
         }
     }
 
-    pub fn get_connection(&self) -> std::sync::MutexGuard<Connection> {
+    pub fn get_connection(&self) -> std::sync::MutexGuard<'_, Connection> {
         match self.conn.lock() {
             Ok(guard) => guard,
             Err(poisoned) => {
@@ -110,4 +110,20 @@ pub fn insert<T: Insertable>(conn: &rusqlite::Connection, item: &T) -> rusqlite:
     })?;
     
     Ok(())
+}
+
+// Query tasks by date range
+pub fn query_tasks_by_date_range(
+    conn: &rusqlite::Connection,
+    start: chrono::DateTime<chrono::Utc>,
+    end: chrono::DateTime<chrono::Utc>,
+) -> rusqlite::Result<Vec<crate::structs::task_struct::Task>> {
+    use crate::structs::task_struct::Task;
+    
+    let sql = include_str!("../db/sql/get_tasks_by_date.sql");
+    
+    let mut stmt = conn.prepare(sql)?;
+    let task_iter = stmt.query_map([&start, &end], |row| Task::from_row(row))?;
+    
+    task_iter.collect()
 }

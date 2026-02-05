@@ -54,3 +54,35 @@ pub fn insertable_derive(input: TokenStream) -> TokenStream {
 
     TokenStream::from(expanded)
 }
+
+#[proc_macro_derive(Queryable)]
+pub fn queryable_derive(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let struct_name = input.ident;
+
+    // Collect field names
+    let field_idents: Vec<_> = match input.data {
+        Data::Struct(ref data_struct) => match data_struct.fields {
+            Fields::Named(ref fields_named) => fields_named.named.iter().map(|f| f.ident.as_ref().unwrap()).collect(),
+            _ => panic!("Queryable only works on structs with named fields"),
+        },
+        _ => panic!("Queryable only works on structs"),
+    };
+
+    let field_count = field_idents.len();
+    let indices: Vec<usize> = (0..field_count).collect();
+
+    let expanded = quote! {
+        impl #struct_name {
+            pub fn from_row(row: &rusqlite::Row) -> rusqlite::Result<Self> {
+                Ok(Self {
+                    #(
+                        #field_idents: row.get(#indices)?,
+                    )*
+                })
+            }
+        }
+    };
+
+    TokenStream::from(expanded)
+}
