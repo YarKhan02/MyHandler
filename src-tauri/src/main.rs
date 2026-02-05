@@ -25,9 +25,13 @@ struct DateQuery {
   date: String,
 }
 
+#[derive(Deserialize)]
+struct TaskId {
+  id: String,
+}
+
 #[tauri::command]
 fn create_task(payload: TaskData, db: State<db::Database>) -> Result<Task, String> {
-  println!("Received task: {} on {}", payload.title, payload.created_at);
   
   // Parse ISO 8601 datetime string
   let created_at = payload.created_at.parse::<chrono::DateTime<Utc>>()
@@ -38,15 +42,13 @@ fn create_task(payload: TaskData, db: State<db::Database>) -> Result<Task, Strin
 
   let task = Task::new(&payload.title, created_at, None);
   insert(&conn, &task).map_err(|e| format!("Failed to insert task: {}", e))?;
-  println!("Inserted task: {:?}", task);
-
+  
   Ok(task)
 }
 
 #[tauri::command]
 fn get_tasks_by_date(payload: DateQuery, db: State<db::Database>) -> Result<Vec<Task>, String> {
-  println!("[GET_TASKS_BY_DATE] Querying tasks for date: {}", payload.date);
-  
+
   // Parse ISO 8601 datetime string and get the date
   let date_time = payload.date.parse::<chrono::DateTime<Utc>>()
     .map_err(|e| format!("Invalid datetime format: {}", e))?;
@@ -59,14 +61,19 @@ fn get_tasks_by_date(payload: DateQuery, db: State<db::Database>) -> Result<Vec<
     .ok_or("Failed to create end of day")?
     .and_utc();
   
-  println!("[GET_TASKS_BY_DATE] Date range: {} to {}", start_of_day, end_of_day);
-  
   let conn = db.get_connection();
   let tasks = db::query_tasks_by_date_range(&conn, start_of_day, end_of_day)
     .map_err(|e| format!("Failed to query tasks: {}", e))?;
   
-  println!("[GET_TASKS_BY_DATE] Found {} tasks", tasks.len());
   Ok(tasks)
+}
+
+#[tauri::command]
+fn delete_task(payload: TaskId, db: State<db::Database>) -> Result<(), String> {
+  let conn = db.get_connection();
+  db::delete_task_by_id(&conn, &payload.id)
+    .map_err(|e| format!("Failed to delete task: {}", e))?;
+  Ok(())
 }
 
 fn main() {
@@ -85,7 +92,7 @@ fn main() {
         }
       }
     })
-    .invoke_handler(tauri::generate_handler![create_task, get_tasks_by_date])
+    .invoke_handler(tauri::generate_handler![create_task, get_tasks_by_date, delete_task])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }

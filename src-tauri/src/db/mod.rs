@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::AppHandle;
 use tauri::Manager;
+use uuid::Uuid;
 use crate::error::{DbError, DbResult};
 
 // Trait for types that can be inserted into the database
@@ -126,4 +127,27 @@ pub fn query_tasks_by_date_range(
     let task_iter = stmt.query_map([&start, &end], |row| Task::from_row(row))?;
     
     task_iter.collect()
+}
+
+// Delete Task by ID
+pub fn delete_task_by_id(
+    conn: &rusqlite::Connection,
+    task_id: &str,
+) -> rusqlite::Result<usize> {
+    let uuid = Uuid::parse_str(task_id)
+        .map_err(|e| rusqlite::Error::InvalidParameterName(format!("Invalid UUID: {}", e)))?;
+    
+    let sql = include_str!("../db/sql/delete_task_by_id.sql");
+    
+    let rows_affected = conn.execute(sql, [&uuid]).map_err(|e| {
+        eprintln!("Failed to delete task with ID {}: {}", task_id, e);
+        eprintln!("SQL: {}", sql);
+        e
+    })?;
+    
+    if rows_affected == 0 {
+        eprintln!("Warning: No task found with ID {}", task_id);
+    }
+    
+    Ok(rows_affected)
 }
