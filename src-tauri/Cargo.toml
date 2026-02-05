@@ -2,7 +2,7 @@
 name = "app"
 version = "0.1.0"
 description = "A Tauri App"
-authors = ["you"]
+authors = ["YarKhan"]
 license = ""
 repository = ""
 edition = "2021"
@@ -18,12 +18,21 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.5.4", features = [] }
 
 [dependencies]
+db_macros = { path = "../src-tauri/src/db_macros" }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
+rusqlite = { version = "0.38", features = ["bundled", "chrono", "uuid"] }
 tauri = { version = "2.10.0", features = [] }
 tauri-plugin-log = "2"
-rusqlite = { version = "0.32", features = ["bundled"] }
-uuid = { version = "1.10", features = ["v4", "serde"] }
+uuid = { version = "1.12", features = ["v7", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 thiserror = "2.0"
+
+# Optimize for faster dev builds
+[profile.dev]
+incremental = true
+opt-level = 1  # Some optimization for faster runtime
+
+[profile.dev.package."*"]
+opt-level = 2  # Optimize dependencies more (they don't change often)

@@ -22,54 +22,72 @@ const parseDateSection = (section: any): DateSection => ({
 export const tauriCommands = {
   createTask: async (title: string, taskDate: Date): Promise<Task> => {
     const result = await invoke('create_task', { 
-      title, 
-      taskDate: taskDate.toISOString() 
+      payload: {
+        title, 
+        taskDate: taskDate.toISOString()
+      }
     });
     return parseTask(result);
   },
 
   updateTask: async (taskId: string, data: Partial<TaskFormData>): Promise<Task> => {
-    const payload = {
-      ...data,
-      deadline: data.deadline?.toISOString(),
-    };
-    const result = await invoke('update_task', { taskId, data: payload });
+    const result = await invoke('update_task', { 
+      payload: {
+        taskId,
+        data: {
+          ...data,
+          deadline: data.deadline?.toISOString(),
+        }
+      }
+    });
     return parseTask(result);
   },
 
   deleteTask: async (taskId: string): Promise<void> => {
-    await invoke('delete_task', { taskId });
+    await invoke('delete_task', { 
+      payload: { taskId }
+    });
   },
 
   startTask: async (taskId: string): Promise<Task> => {
-    const result = await invoke('start_task', { taskId });
+    const result = await invoke('start_task', { 
+      payload: { taskId }
+    });
     return parseTask(result);
   },
 
   pauseTask: async (taskId: string): Promise<Task> => {
-    const result = await invoke('pause_task', { taskId });
+    const result = await invoke('pause_task', { 
+      payload: { taskId }
+    });
     return parseTask(result);
   },
 
   resumeTask: async (taskId: string): Promise<Task> => {
-    const result = await invoke('resume_task', { taskId });
+    const result = await invoke('resume_task', { 
+      payload: { taskId }
+    });
     return parseTask(result);
   },
 
   completeTask: async (taskId: string): Promise<Task> => {
-    const result = await invoke('complete_task', { taskId });
+    const result = await invoke('complete_task', { 
+      payload: { taskId }
+    });
     return parseTask(result);
   },
 
   getTasksByDate: async (date: Date): Promise<Task[]> => {
     const result = await invoke<any[]>('get_tasks_by_date', { 
-      date: date.toISOString() 
+      payload: { date: date.toISOString() }
     });
     return result.map(parseTask);
   },
 
   getTaskById: async (taskId: string): Promise<Task | null> => {
-    const result = await invoke('get_task_by_id', { taskId });
+    const result = await invoke('get_task_by_id', { 
+      payload: { taskId }
+    });
     return result ? parseTask(result) : null;
   },
 
@@ -79,7 +97,9 @@ export const tauriCommands = {
   },
 
   searchTasks: async (query: string): Promise<Task[]> => {
-    const result = await invoke<any[]>('search_tasks', { query });
+    const result = await invoke<any[]>('search_tasks', { 
+      payload: { query }
+    });
     return result.map(parseTask);
   },
 
