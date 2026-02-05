@@ -1,0 +1,185 @@
+import { MainLayout, PageHeader } from '@/components/layout';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { Moon, Bell, Clock, Calendar, Download, Upload } from 'lucide-react';
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+
+const SettingsPage = () => {
+  const [darkMode, setDarkMode] = useState(false);
+  const [notifications, setNotifications] = useState(true);
+  const [defaultReminder, setDefaultReminder] = useState('none');
+
+  const handleDarkModeChange = (enabled: boolean) => {
+    setDarkMode(enabled);
+    if (enabled) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
+
+  return (
+    <MainLayout>
+      <PageHeader title="Settings" />
+
+      <div className="p-6 max-w-2xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-8"
+        >
+          {/* Appearance */}
+          <section>
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Moon className="h-5 w-5" />
+              Appearance
+            </h2>
+            <div className="soft-card p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="dark-mode" className="text-base">
+                    Dark Mode
+                  </Label>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Switch between light and dark theme
+                  </p>
+                </div>
+                <Switch
+                  id="dark-mode"
+                  checked={darkMode}
+                  onCheckedChange={handleDarkModeChange}
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Notifications */}
+          <section>
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              Notifications
+            </h2>
+            <div className="soft-card p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="notifications" className="text-base">
+                    Enable Notifications
+                  </Label>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Get reminders for your tasks
+                  </p>
+                </div>
+                <Switch
+                  id="notifications"
+                  checked={notifications}
+                  onCheckedChange={setNotifications}
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Default Reminder */}
+          <section>
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Default Reminder
+            </h2>
+            <div className="soft-card p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base">Default Reminder Frequency</Label>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Applied to new tasks by default
+                  </p>
+                </div>
+                <Select value={defaultReminder} onValueChange={setDefaultReminder}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="hourly">Every hour</SelectItem>
+                    <SelectItem value="every-3-hours">Every 3 hours</SelectItem>
+                    <SelectItem value="daily">Daily</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </section>
+
+          {/* Calendar Integration */}
+          <section>
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Calendar Integration
+            </h2>
+            <div className="soft-card p-4">
+              <p className="text-sm text-muted-foreground mb-4">
+                Connect your calendar to sync tasks with deadlines.
+              </p>
+              <Button variant="outline" disabled>
+                Connect Calendar (Coming Soon)
+              </Button>
+            </div>
+          </section>
+
+          {/* Data */}
+          <section>
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Download className="h-5 w-5" />
+              Data
+            </h2>
+            <div className="soft-card p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base">Export Data</Label>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Download all your tasks as JSON
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" disabled>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+              </div>
+              
+              <Separator />
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base">Import Data</Label>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Restore tasks from a backup
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" disabled>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import
+                </Button>
+              </div>
+            </div>
+          </section>
+
+          {/* Version */}
+          <div className="text-center pt-8">
+            <p className="text-sm text-muted-foreground">
+              MyHandler v1.0.0
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    </MainLayout>
+  );
+};
+
+export default SettingsPage;

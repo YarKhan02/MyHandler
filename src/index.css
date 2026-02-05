@@ -1,0 +1,227 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* MyHandler Design System
+   Modern minimal task manager with calming teal accents
+   All colors in HSL format
+*/
+
+@layer base {
+  :root {
+    /* Base colors - Warm light theme */
+    --background: 40 20% 98%;
+    --foreground: 220 20% 12%;
+
+    /* Card surfaces */
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 12%;
+
+    /* Popover/Modal surfaces */
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 12%;
+
+    /* Primary - Calming Teal */
+    --primary: 175 60% 42%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 175 60% 36%;
+    --primary-muted: 175 40% 94%;
+
+    /* Secondary - Warm Gray */
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 20% 25%;
+
+    /* Muted elements */
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 10% 50%;
+
+    /* Accent - Subtle highlight */
+    --accent: 175 40% 94%;
+    --accent-foreground: 175 60% 32%;
+
+    /* Destructive - Soft red */
+    --destructive: 0 72% 58%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders & inputs */
+    --border: 220 14% 90%;
+    --input: 220 14% 90%;
+    --ring: 175 60% 42%;
+
+    /* Radius */
+    --radius: 0.75rem;
+
+    /* Sidebar */
+    --sidebar-background: 220 20% 98%;
+    --sidebar-foreground: 220 15% 35%;
+    --sidebar-primary: 175 60% 42%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 175 40% 94%;
+    --sidebar-accent-foreground: 175 60% 32%;
+    --sidebar-border: 220 14% 92%;
+    --sidebar-ring: 175 60% 42%;
+
+    /* Task status colors */
+    --status-not-started: 220 10% 55%;
+    --status-ongoing: 175 60% 42%;
+    --status-paused: 38 92% 50%;
+    --status-completed: 142 60% 45%;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 hsl(220 20% 12% / 0.03);
+    --shadow-md: 0 4px 6px -1px hsl(220 20% 12% / 0.05), 0 2px 4px -2px hsl(220 20% 12% / 0.03);
+    --shadow-lg: 0 10px 15px -3px hsl(220 20% 12% / 0.06), 0 4px 6px -4px hsl(220 20% 12% / 0.03);
+    --shadow-card: 0 1px 3px 0 hsl(220 20% 12% / 0.04), 0 1px 2px -1px hsl(220 20% 12% / 0.04);
+  }
+
+  .dark {
+    --background: 220 20% 8%;
+    --foreground: 220 14% 96%;
+
+    --card: 220 20% 10%;
+    --card-foreground: 220 14% 96%;
+
+    --popover: 220 20% 10%;
+    --popover-foreground: 220 14% 96%;
+
+    --primary: 175 55% 50%;
+    --primary-foreground: 220 20% 8%;
+    --primary-hover: 175 55% 55%;
+    --primary-muted: 175 30% 18%;
+
+    --secondary: 220 18% 16%;
+    --secondary-foreground: 220 14% 90%;
+
+    --muted: 220 18% 16%;
+    --muted-foreground: 220 10% 55%;
+
+    --accent: 175 30% 18%;
+    --accent-foreground: 175 55% 60%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 18% 18%;
+    --input: 220 18% 18%;
+    --ring: 175 55% 50%;
+
+    --sidebar-background: 220 20% 9%;
+    --sidebar-foreground: 220 10% 65%;
+    --sidebar-primary: 175 55% 50%;
+    --sidebar-primary-foreground: 220 20% 8%;
+    --sidebar-accent: 175 30% 18%;
+    --sidebar-accent-foreground: 175 55% 60%;
+    --sidebar-border: 220 18% 15%;
+    --sidebar-ring: 175 55% 50%;
+
+    --status-not-started: 220 10% 50%;
+    --status-ongoing: 175 55% 50%;
+    --status-paused: 38 85% 55%;
+    --status-completed: 142 55% 50%;
+
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.2);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.3), 0 2px 4px -2px hsl(0 0% 0% / 0.2);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.35), 0 4px 6px -4px hsl(0 0% 0% / 0.2);
+    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.25), 0 1px 2px -1px hsl(0 0% 0% / 0.2);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+@layer components {
+  /* Task row hover effect */
+  .task-row {
+    @apply transition-all duration-200 ease-out;
+  }
+  
+  .task-row:hover {
+    @apply bg-accent/50;
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Status badges */
+  .status-badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .status-not-started {
+    @apply bg-muted text-muted-foreground;
+  }
+  
+  .status-ongoing {
+    @apply bg-primary-muted text-primary;
+  }
+  
+  .status-paused {
+    background-color: hsl(38 92% 50% / 0.15);
+    color: hsl(var(--status-paused));
+  }
+
+  /* Date section styling */
+  .date-section {
+    @apply relative;
+  }
+  
+  .date-section::before {
+    content: '';
+    @apply absolute left-4 top-10 bottom-0 w-px bg-border;
+  }
+
+  /* Sidebar nav item */
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground transition-all duration-150;
+  }
+  
+  .nav-item:hover {
+    @apply bg-sidebar-accent text-sidebar-accent-foreground;
+  }
+  
+  .nav-item.active {
+    @apply bg-sidebar-accent text-sidebar-primary font-medium;
+  }
+
+  /* Card with soft shadow */
+  .soft-card {
+    @apply bg-card rounded-xl border border-border/50;
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Focus timer display */
+  .timer-display {
+    @apply text-6xl font-light tracking-tight text-foreground tabular-nums;
+  }
+
+  /* Smooth scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/30;
+  }
+}
+
+@layer utilities {
+  /* Animation delays */
+  .animation-delay-100 { animation-delay: 100ms; }
+  .animation-delay-200 { animation-delay: 200ms; }
+  .animation-delay-300 { animation-delay: 300ms; }
+  .animation-delay-400 { animation-delay: 400ms; }
+}
