@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS settings (
     default_reminder_frequency VARCHAR(20) NOT NULL DEFAULT 'none' CHECK (
         default_reminder_frequency IN ('none', 'hourly', 'every-3-hours', 'daily')
     ),
+    calendar_integration_enabled BOOLEAN NOT NULL DEFAULT 0,
+    calendar_email VARCHAR(255),
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

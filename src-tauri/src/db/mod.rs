@@ -80,6 +80,7 @@ pub fn init_db(app: &AppHandle) -> DbResult<()> {
     let table_sql_files = [
         ("tasks", include_str!("../db/tables/tasks.sql")),
         ("settings", include_str!("../db/tables/settings.sql")),
+        ("calendar_credentials", include_str!("../db/tables/calendar_credentials.sql")),
     ];
 
     for (table_name, sql) in table_sql_files {
@@ -307,4 +308,74 @@ pub fn update_settings<T: Updatable>(
     } else {
         get_settings(conn)
     }
+}
+
+// Save calendar credentials to database
+pub fn save_calendar_credentials(
+    conn: &rusqlite::Connection,
+    creds: &crate::structs::calendar::CalendarCredentials,
+) -> rusqlite::Result<()> {
+    let sql = include_str!("../db/sql/save_calendar_credentials.sql");
+    
+    conn.execute(
+        sql,
+        rusqlite::params![
+            &creds.email,
+            &creds.access_token,
+            &creds.refresh_token,
+            &creds.token_expiry,
+        ],
+    )?;
+    
+    // Enable calendar integration in settings
+    let enable_sql = include_str!("../db/sql/enable_calendar_integration.sql");
+    conn.execute(enable_sql, rusqlite::params![&creds.email])?;
+    
+    Ok(())
+}
+
+// Get calendar credentials from database
+pub fn get_calendar_credentials(
+    conn: &rusqlite::Connection,
+) -> rusqlite::Result<Option<crate::structs::calendar::CalendarCredentials>> {
+    use crate::structs::calendar::CalendarCredentials;
+    
+    let sql = include_str!("../db/sql/get_calendar_credentials.sql");
+    
+    let result = conn.query_row(sql, [], |row| {
+        let email: String = row.get(0)?;
+        let access_token: String = row.get(1)?;
+        let refresh_token: String = row.get(2)?;
+        let token_expiry: chrono::DateTime<chrono::Utc> = row.get(3)?;
+        
+        // Check if credentials are actually set (not empty placeholder)
+        if email.is_empty() || access_token.is_empty() {
+            return Err(rusqlite::Error::QueryReturnedNoRows);
+        }
+        
+        Ok(CalendarCredentials {
+            email,
+            access_token,
+            refresh_token,
+            token_expiry,
+        })
+    });
+    
+    match result {
+        Ok(creds) => Ok(Some(creds)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(e),
+    }
+}
+
+// Clear calendar credentials from database
+pub fn clear_calendar_credentials(conn: &rusqlite::Connection) -> rusqlite::Result<()> {
+    let sql = include_str!("../db/sql/clear_calendar_credentials.sql");
+    conn.execute(sql, [])?;
+    
+    // Disable calendar integration in settings
+    let disable_sql = include_str!("../db/sql/disable_calendar_integration.sql");
+    conn.execute(disable_sql, [])?;
+    
+    Ok(())
 }

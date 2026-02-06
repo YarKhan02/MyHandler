@@ -19,6 +19,8 @@ import type { Settings } from '@/interfaces/settings';
 const SettingsPage = () => {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState(false);
+
 
   // Fetch settings on mount
   useEffect(() => {
@@ -66,6 +68,34 @@ const SettingsPage = () => {
 
   const handleReminderChange = (frequency: 'none' | 'hourly' | 'every-3-hours' | 'daily') => {
     updateSetting({ defaultReminderFrequency: frequency });
+  };
+
+  const startCalendarConnection = async () => {
+    console.log('startCalendarConnection called');
+    setConnecting(true);
+    try {
+      console.log('Calling startCalendarAuth...');
+      const credentials = await tauriCommands.startCalendarAuth();
+      console.log('Calendar connected:', credentials);
+      
+      // Refresh settings to show connected status
+      const updatedSettings = await tauriCommands.getSettings();
+      setSettings(updatedSettings);
+    } catch (error) {
+      console.error('Failed to start calendar auth:', error);
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  const disconnectCalendar = async () => {
+    try {
+      await tauriCommands.disconnectCalendar();
+      const updatedSettings = await tauriCommands.getSettings();
+      setSettings(updatedSettings);
+    } catch (error) {
+      console.error('Failed to disconnect calendar:', error);
+    }
   };
 
   if (loading || !settings) {
@@ -175,15 +205,54 @@ const SettingsPage = () => {
           <section>
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Calendar Integration
+              Google Calendar Integration
             </h2>
-            <div className="soft-card p-4">
-              <p className="text-sm text-muted-foreground mb-4">
-                Connect your calendar to sync tasks with deadlines.
-              </p>
-              <Button variant="outline" disabled>
-                Connect Calendar (Coming Soon)
-              </Button>
+            <div className="soft-card p-4 space-y-4">
+              {settings.calendarIntegrationEnabled ? (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-base">Connected</Label>
+                      <p className="text-sm text-muted-foreground mt-0.5">
+                        {settings.calendarEmail}
+                      </p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={disconnectCalendar}
+                    >
+                      Disconnect
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <Label className="text-base">Connect Google Calendar</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Sync your tasks with Google Calendar events. A browser window will open for authentication.
+                    </p>
+                  </div>
+                  <Button 
+                    variant="default"
+                    onClick={startCalendarConnection}
+                    disabled={connecting}
+                  >
+                    {connecting ? (
+                      <>
+                        <div className="animate-spin h-4 w-4 mr-2 border-2 border-background border-t-transparent rounded-full" />
+                        Connecting...
+                      </>
+                    ) : (
+                      <>
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Connect Calendar
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
             </div>
           </section>
 

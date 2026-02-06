@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { Task, TaskFormData, TaskStatus } from '@/interfaces/task';
 import { DateSection } from '@/interfaces/date-section';
-import { Settings, SettingsUpdateData } from '@/interfaces/settings';
+import { Settings, SettingsUpdateData, CalendarCredentials } from '@/interfaces/settings';
 
 // Helper to convert backend task dates to Date objects
 const parseTask = (task: any): Task => ({
@@ -152,5 +152,29 @@ export const tauriCommands = {
       createdAt: new Date(result.createdAt),
       updatedAt: new Date(result.updatedAt),
     };
+  },
+
+  // Calendar Commands
+  startCalendarAuth: async (): Promise<CalendarCredentials> => {
+    const result = await invoke<CalendarCredentials>('start_calendar_auth');
+    return {
+      ...result,
+      tokenExpiry: new Date(result.tokenExpiry),
+    };
+  },
+
+  getCalendarStatus: async (): Promise<CalendarCredentials | null> => {
+    const result = await invoke<CalendarCredentials | null>('get_calendar_status');
+    if (result) {
+      return {
+        ...result,
+        tokenExpiry: new Date(result.tokenExpiry),
+      };
+    }
+    return null;
+  },
+
+  disconnectCalendar: async (): Promise<void> => {
+    await invoke('disconnect_calendar');
   },
 };

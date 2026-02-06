@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Error</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: hsl(40, 20%, 98%);
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 48px 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            max-width: 450px;
+            width: 100%;
+            border: 1px solid hsl(220, 14%, 90%);
+        }
+
+        .icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 24px;
+            background: hsl(40, 70%, 95%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .alert {
+            width: 32px;
+            height: 32px;
+            stroke: hsl(40, 90%, 50%);
+            stroke-width: 3;
+            fill: none;
+        }
+
+        h1 {
+            color: hsl(220, 20%, 12%);
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        p {
+            color: hsl(220, 10%, 50%);
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .warning-box {
+            background: hsl(40, 70%, 95%);
+            padding: 16px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid hsl(40, 60%, 88%);
+        }
+
+        .warning-text {
+            color: hsl(40, 60%, 30%);
+            font-size: 14px;
+        }
+
+        .close-instruction {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid hsl(220, 14%, 90%);
+        }
+
+        .app-name {
+            color: hsl(175, 60%, 42%);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">
+            <svg class="alert" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+        </div>
+        
+        <h1>Security Error</h1>
+        
+        <div class="warning-box">
+            <p class="warning-text">
+                Invalid state parameter detected. This could be a CSRF attack or an expired authorization session.
+            </p>
+        </div>
+        
+        <p>For your security, the authorization process has been stopped.</p>
+        
+        <div class="close-instruction">
+            <p>Please close this window and try connecting your calendar again in <span class="app-name">MyHandler</span>.</p>
+        </div>
+    </div>
+</body>
+</html>

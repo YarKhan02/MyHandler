@@ -7,6 +7,7 @@ mod structs;
 mod helpers;
 mod services;
 mod commands;
+mod thirdparty;
 
 use commands::{
   create_task, 
@@ -20,7 +21,10 @@ use commands::{
   get_task_by_id,
   update_task,
   get_settings,
-  update_settings
+  update_settings,
+  start_calendar_auth,
+  get_calendar_status,
+  disconnect_calendar
 };
 
 fn main() {
@@ -51,7 +55,10 @@ fn main() {
       get_task_by_id,
       update_task,
       get_settings,
-      update_settings
+      update_settings,
+      start_calendar_auth,
+      get_calendar_status,
+      disconnect_calendar
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

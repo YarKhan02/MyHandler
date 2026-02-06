@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authorization Successful</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: hsl(40, 20%, 98%);
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 48px 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            max-width: 450px;
+            width: 100%;
+            border: 1px solid hsl(220, 14%, 90%);
+        }
+
+        .icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 24px;
+            background: hsl(175, 40%, 94%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .check {
+            width: 32px;
+            height: 32px;
+            stroke: hsl(175, 60%, 42%);
+            stroke-width: 3;
+            fill: none;
+        }
+
+        h1 {
+            color: hsl(220, 20%, 12%);
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        p {
+            color: hsl(220, 10%, 50%);
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .close-instruction {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid hsl(220, 14%, 90%);
+        }
+
+        .app-name {
+            color: hsl(175, 60%, 42%);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">
+            <svg class="check" viewBox="0 0 24 24">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+        </div>
+        
+        <h1>Authorization Successful!</h1>
+        
+        <p>Your Google Calendar has been connected to <span class="app-name">MyHandler</span>.</p>
+        
+        <div class="close-instruction">
+            <p>You can now close this window and return to the app.</p>
+        </div>
+    </div>
+</body>
+</html>

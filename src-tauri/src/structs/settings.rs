@@ -47,6 +47,8 @@ pub struct Settings {
     pub dark_mode: bool,
     pub notifications_enabled: bool,
     pub default_reminder_frequency: ReminderFrequency,
+    pub calendar_integration_enabled: bool,
+    pub calendar_email: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

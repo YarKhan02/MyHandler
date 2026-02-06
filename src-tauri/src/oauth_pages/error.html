@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authorization Failed</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: hsl(40, 20%, 98%);
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 48px 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            max-width: 450px;
+            width: 100%;
+            border: 1px solid hsl(220, 14%, 90%);
+        }
+
+        .icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 24px;
+            background: hsl(0, 70%, 95%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .x-mark {
+            width: 32px;
+            height: 32px;
+            stroke: hsl(0, 72%, 58%);
+            stroke-width: 3;
+        }
+
+        h1 {
+            color: hsl(220, 20%, 12%);
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        p {
+            color: hsl(220, 10%, 50%);
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .error-message {
+            background: hsl(0, 70%, 95%);
+            padding: 16px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid hsl(0, 60%, 88%);
+        }
+
+        .error-text {
+            color: hsl(0, 60%, 35%);
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            word-break: break-word;
+        }
+
+        .close-instruction {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid hsl(220, 14%, 90%);
+        }
+
+        .app-name {
+            color: hsl(175, 60%, 42%);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">
+            <svg class="x-mark" viewBox="0 0 24 24" fill="none">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </div>
+        
+        <h1>Authorization Failed</h1>
+        
+        <p>There was a problem connecting your Google Calendar to <span class="app-name">MyHandler</span>.</p>
+        
+        <div class="error-message">
+            <p class="error-text">{{ERROR_MESSAGE}}</p>
+        </div>
+        
+        <div class="close-instruction">
+            <p>Please close this window and try again in the app.</p>
+        </div>
+    </div>
+</body>
+</html>
