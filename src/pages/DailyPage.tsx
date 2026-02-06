@@ -27,11 +27,13 @@ const DailyPage = () => {
   const [sectionTasks, setSectionTasks] = useState<Record<string, Task[]>>({});
 
   // Fetch tasks for all sections
+  // This is done in a single function to minimize the number of re-renders and API calls
+  // It loads all tasks for the visible sections at once and stores them in a map for quick access
   const fetchSectionTasks = useCallback(async () => {
     const tasksMap: Record<string, Task[]> = {};
     for (const section of sections) {
       const key = section.date.toISOString();
-      tasksMap[key] = await tauriCommands.getTasksByDate(section.date);
+      tasksMap[key] = await tauriCommands.getTasksByDateNotCompleted(section.date);
     }
     setSectionTasks(tasksMap);
   }, [sections]);

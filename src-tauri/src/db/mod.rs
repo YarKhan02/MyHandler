@@ -118,10 +118,9 @@ pub fn query_tasks_by_date_range(
     conn: &rusqlite::Connection,
     start: chrono::DateTime<chrono::Utc>,
     end: chrono::DateTime<chrono::Utc>,
+    sql: &str,
 ) -> rusqlite::Result<Vec<crate::structs::task_struct::Task>> {
     use crate::structs::task_struct::Task;
-    
-    let sql = include_str!("../db/sql/get_tasks_by_date.sql");
     
     let mut stmt = conn.prepare(sql)?;
     let task_iter = stmt.query_map([&start, &end], |row| Task::from_row(row))?;
@@ -150,4 +149,44 @@ pub fn delete_task_by_id(
     }
     
     Ok(rows_affected)
+}
+
+// Handles: start, pause, resume, complete transitions
+pub fn update_task_status(
+    conn: &rusqlite::Connection,
+    task_id: &str,
+    new_status: crate::structs::task_struct::Status,
+) -> rusqlite::Result<crate::structs::task_struct::Task> {
+    use crate::structs::task_struct::{Task, Status};
+    
+    let uuid = Uuid::parse_str(task_id)
+        .map_err(|e| rusqlite::Error::InvalidParameterName(format!("Invalid UUID: {}", e)))?;
+    
+    let now = chrono::Utc::now();
+    
+    // Load SQL based on the status transition using include_str! macro
+    let sql = match new_status {
+        Status::Ongoing => include_str!("../db/sql/update_status_ongoing.sql"),
+        Status::Paused => include_str!("../db/sql/update_status_paused.sql"),
+        Status::Completed => include_str!("../db/sql/update_status_completed.sql"),
+        Status::NotStarted => include_str!("../db/sql/update_status_not_started.sql"),
+    };
+    
+    let rows_affected = if new_status == Status::NotStarted {
+        conn.execute(sql, rusqlite::params![&new_status, &now, &uuid])
+    } else {
+        conn.execute(sql, rusqlite::params![&new_status, &now, &now, &uuid])
+    }.map_err(|e| {
+        eprintln!("Failed to update task status to {:?} for ID {}: {}", new_status, task_id, e);
+        e
+    })?;
+    
+    if rows_affected == 0 {
+        return Err(rusqlite::Error::QueryReturnedNoRows);
+    }
+    
+    // Fetch and return the updated task
+    let fetch_sql = include_str!("../db/sql/get_task_by_id.sql");
+    
+    conn.query_row(fetch_sql, [&uuid], |row| Task::from_row(row))
 }

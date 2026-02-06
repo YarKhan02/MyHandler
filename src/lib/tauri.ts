@@ -44,12 +44,14 @@ export const tauriCommands = {
     return parseTask(result);
   },
 
+  // Delete a task by ID
   deleteTask: async (id: string): Promise<void> => {
     await invoke('delete_task', { 
       payload: { id }
     });
   },
 
+  // Task status updates to handle start, pause, resume, complete
   startTask: async (id: string): Promise<Task> => {
     const result = await invoke('start_task', { 
       payload: { id }
@@ -76,6 +78,14 @@ export const tauriCommands = {
       payload: { id }
     });
     return parseTask(result);
+  },
+
+  // Get tasks by date (excluding completed)
+  getTasksByDateNotCompleted: async (date: Date): Promise<Task[]> => {
+    const result = await invoke<any[]>('get_tasks_by_date_not_completed', { 
+      payload: { date: date.toISOString() }
+    });
+    return result.map(parseTask);
   },
 
   // Get tasks by date
