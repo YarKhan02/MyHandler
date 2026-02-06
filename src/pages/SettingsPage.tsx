@@ -11,22 +11,73 @@ import {
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Moon, Bell, Clock, Calendar, Download, Upload } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { tauriCommands } from '@/lib/tauri';
+import type { Settings } from '@/interfaces/settings';
 
 const SettingsPage = () => {
-  const [darkMode, setDarkMode] = useState(false);
-  const [notifications, setNotifications] = useState(true);
-  const [defaultReminder, setDefaultReminder] = useState('none');
+  const [settings, setSettings] = useState<Settings | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch settings on mount
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const result = await tauriCommands.getSettings();
+        setSettings(result);
+      } catch (error) {
+        console.error('Failed to fetch settings:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSettings();
+  }, []);
+
+  const updateSetting = async (data: Partial<Settings>) => {
+    if (!settings) return;
+
+    try {
+      const updated = await tauriCommands.updateSettings({
+        darkMode: data.darkMode,
+        notificationsEnabled: data.notificationsEnabled,
+        defaultReminderFrequency: data.defaultReminderFrequency,
+      });
+      setSettings(updated);
+    } catch (error) {
+      console.error('Failed to update settings:', error);
+    }
+  };
 
   const handleDarkModeChange = (enabled: boolean) => {
-    setDarkMode(enabled);
+    updateSetting({ darkMode: enabled });
     if (enabled) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
   };
+
+  const handleNotificationsChange = (enabled: boolean) => {
+    updateSetting({ notificationsEnabled: enabled });
+  };
+
+  const handleReminderChange = (frequency: 'none' | 'hourly' | 'every-3-hours' | 'daily') => {
+    updateSetting({ defaultReminderFrequency: frequency });
+  };
+
+  if (loading || !settings) {
+    return (
+      <MainLayout>
+        <PageHeader title="Settings" />
+        <div className="p-6 max-w-2xl mx-auto">
+          <p className="text-muted-foreground">Loading settings...</p>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -56,7 +107,7 @@ const SettingsPage = () => {
                 </div>
                 <Switch
                   id="dark-mode"
-                  checked={darkMode}
+                  checked={settings.darkMode}
                   onCheckedChange={handleDarkModeChange}
                 />
               </div>
@@ -81,8 +132,8 @@ const SettingsPage = () => {
                 </div>
                 <Switch
                   id="notifications"
-                  checked={notifications}
-                  onCheckedChange={setNotifications}
+                  checked={settings.notificationsEnabled}
+                  onCheckedChange={handleNotificationsChange}
                 />
               </div>
             </div>
@@ -102,7 +153,10 @@ const SettingsPage = () => {
                     Applied to new tasks by default
                   </p>
                 </div>
-                <Select value={defaultReminder} onValueChange={setDefaultReminder}>
+                <Select 
+                  value={settings.defaultReminderFrequency} 
+                  onValueChange={(value) => handleReminderChange(value as 'none' | 'hourly' | 'every-3-hours' | 'daily')}
+                >
                   <SelectTrigger className="w-40">
                     <SelectValue />
                   </SelectTrigger>

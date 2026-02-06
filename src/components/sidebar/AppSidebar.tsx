@@ -7,7 +7,7 @@ export const AppSidebar = () => {
       {/* App Logo */}
       <div className="h-16 flex items-center px-5 border-b border-sidebar-border">
         <h1 className="text-xl font-semibold text-foreground tracking-tight">
-          MyHandler
+          My Handler
         </h1>
       </div>
 

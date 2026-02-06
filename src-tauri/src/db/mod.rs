@@ -79,6 +79,7 @@ pub fn init_db(app: &AppHandle) -> DbResult<()> {
     
     let table_sql_files = [
         ("tasks", include_str!("../db/tables/tasks.sql")),
+        ("settings", include_str!("../db/tables/settings.sql")),
     ];
 
     for (table_name, sql) in table_sql_files {
@@ -253,4 +254,57 @@ pub fn update_task_status(
     
     // Fetch and return the updated task
     get_task_by_id(conn, task_id)
+}
+
+// Get settings from database
+pub fn get_settings(
+    conn: &rusqlite::Connection,
+) -> rusqlite::Result<crate::structs::settings::Settings> {
+    use crate::structs::settings::Settings;
+    
+    let sql = include_str!("../db/sql/get_settings.sql");
+    
+    conn.query_row(sql, [], |row| Settings::from_row(row))
+}
+
+// Update settings in database
+pub fn update_settings<T: Updatable>(
+    conn: &rusqlite::Connection,
+    update_data: &T,
+) -> rusqlite::Result<crate::structs::settings::Settings> {
+    let cols_vals = update_data.update_columns_values();
+    
+    if cols_vals.is_empty() {
+        // No fields to update, just return current settings
+        return get_settings(conn);
+    }
+    
+    let set_clauses: Vec<String> = cols_vals.iter()
+        .map(|(col, _)| format!("{} = ?", col))
+        .collect();
+    let values: Vec<&dyn rusqlite::ToSql> = cols_vals.iter()
+        .map(|(_, v)| *v)
+        .collect();
+    
+    let now = chrono::Utc::now();
+    let sql = format!(
+        "UPDATE {} SET {}, updated_at = ? WHERE id = 1",
+        T::table_name(),
+        set_clauses.join(", ")
+    );
+    
+    let mut params = values;
+    params.push(&now);
+    
+    let rows_affected = conn.execute(&sql, &params[..]).map_err(|e| {
+        eprintln!("Failed to update settings: {}", e);
+        eprintln!("SQL: {}", sql);
+        e
+    })?;
+    
+    if rows_affected == 0 {
+        Err(rusqlite::Error::QueryReturnedNoRows)
+    } else {
+        get_settings(conn)
+    }
 }

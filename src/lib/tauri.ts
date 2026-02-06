@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { Task, TaskFormData, TaskStatus } from '@/interfaces/task';
 import { DateSection } from '@/interfaces/date-section';
+import { Settings, SettingsUpdateData } from '@/interfaces/settings';
 
 // Helper to convert backend task dates to Date objects
 const parseTask = (task: any): Task => ({
@@ -31,6 +32,7 @@ export const tauriCommands = {
     return parseTask(result);
   },
 
+  // Update an existing task
   updateTask: async (id: string, data: Partial<TaskFormData>): Promise<Task> => {
     const result = await invoke('update_task', { 
       payload: {
@@ -129,5 +131,26 @@ export const tauriCommands = {
   getCompletedTasks: async (): Promise<Task[]> => {
     const result = await invoke<any[]>('get_completed_tasks');
     return result.map(parseTask);
+  },
+
+  // Settings Commands
+  getSettings: async (): Promise<Settings> => {
+    const result = await invoke<any>('get_settings');
+    return {
+      ...result,
+      createdAt: new Date(result.createdAt),
+      updatedAt: new Date(result.updatedAt),
+    };
+  },
+
+  updateSettings: async (data: SettingsUpdateData): Promise<Settings> => {
+    const result = await invoke<any>('update_settings', { 
+      payload: data
+    });
+    return {
+      ...result,
+      createdAt: new Date(result.createdAt),
+      updatedAt: new Date(result.updatedAt),
+    };
   },
 };

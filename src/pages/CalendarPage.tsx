@@ -97,6 +97,7 @@ const CalendarPage = () => {
                       className="soft-card px-4 py-3"
                     >
                       <p className="text-sm font-medium">{task.title}</p>
+                      <p className="text-sm text-muted-foreground/70 mt-1">{task.notes}</p>
                       <div className="flex items-center gap-2 mt-1.5">
                         <span className={`status-badge ${
                           task.status === 'completed' 

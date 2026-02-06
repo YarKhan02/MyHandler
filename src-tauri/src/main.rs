@@ -6,62 +6,22 @@ mod error;
 mod structs;
 mod helpers;
 mod services;
+mod commands;
 
-use tauri::State;
-use crate::structs::dto::{TaskData, DateQuery, TaskId};
-use crate::structs::task_update::TaskUpdate;
-use crate::structs::task_struct::Task;
-use crate::services::task_service;
-
-#[tauri::command]
-fn create_task(payload: TaskData, db: State<db::Database>) -> Result<Task, String> {
-  task_service::create_task(payload, &db)
-}
-
-#[tauri::command]
-fn get_tasks_by_date(payload: DateQuery, db: State<db::Database>) -> Result<Vec<Task>, String> {
-  task_service::get_tasks_by_date(payload, &db)
-}
-
-#[tauri::command]
-fn get_tasks_by_date_not_completed(payload: DateQuery, db: State<db::Database>) -> Result<Vec<Task>, String> {
-  task_service::get_tasks_by_date_not_completed(payload, &db)
-}
-
-#[tauri::command]
-fn start_task(payload: TaskId, db: State<db::Database>) -> Result<Task, String> {
-  task_service::start_task(payload, &db)
-}
-
-#[tauri::command]
-fn pause_task(payload: TaskId, db: State<db::Database>) -> Result<Task, String> {
-  task_service::pause_task(payload, &db)
-}
-
-#[tauri::command]
-fn resume_task(payload: TaskId, db: State<db::Database>) -> Result<Task, String> {
-  task_service::resume_task(payload, &db)
-}
-
-#[tauri::command]
-fn complete_task(payload: TaskId, db: State<db::Database>) -> Result<Task, String> {
-  task_service::complete_task(payload, &db)
-}
-
-#[tauri::command]
-fn delete_task(payload: TaskId, db: State<db::Database>) -> Result<(), String> {
-  task_service::delete_task(payload, &db)
-}
-
-#[tauri::command]
-fn get_task_by_id(payload: TaskId, db: State<db::Database>) -> Result<Task, String> {
-  task_service::get_task_by_id(payload, &db)
-}
-
-#[tauri::command]
-fn update_task(payload: TaskUpdate, db: State<db::Database>) -> Result<Task, String> {
-  task_service::update_task(payload, &db)
-}
+use commands::{
+  create_task, 
+  get_tasks_by_date, 
+  get_tasks_by_date_not_completed, 
+  start_task, 
+  pause_task, 
+  resume_task, 
+  complete_task, 
+  delete_task, 
+  get_task_by_id,
+  update_task,
+  get_settings,
+  update_settings
+};
 
 fn main() {
   tauri::Builder::default()
@@ -89,7 +49,9 @@ fn main() {
       complete_task, 
       delete_task, 
       get_task_by_id,
-      update_task
+      update_task,
+      get_settings,
+      update_settings
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
