@@ -9,6 +9,7 @@ mod services;
 mod commands;
 mod thirdparty;
 
+use dotenv::dotenv;
 use commands::{
   create_task, 
   get_tasks_by_date, 
