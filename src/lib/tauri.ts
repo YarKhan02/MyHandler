@@ -96,6 +96,7 @@ export const tauriCommands = {
     return result.map(parseTask);
   },
 
+  // Get a single task by ID
   getTaskById: async (id: string): Promise<Task | null> => {
     const result = await invoke('get_task_by_id', { 
       payload: { id }

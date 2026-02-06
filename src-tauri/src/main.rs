@@ -5,117 +5,62 @@ mod db;
 mod error;
 mod structs;
 mod helpers;
+mod services;
 
 use tauri::State;
-use serde::Deserialize;
-use chrono::Utc;
-
-use crate::db::insert;
+use crate::structs::dto::{TaskData, DateQuery, TaskId};
+use crate::structs::task_update::TaskUpdate;
 use crate::structs::task_struct::Task;
-use crate::helpers::parse_date::parse_date_range;
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct TaskData {
-  title: String,
-  created_at: String,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct DateQuery {
-  date: String,
-}
-
-#[derive(Deserialize)]
-struct TaskId {
-  id: String,
-}
+use crate::services::task_service;
 
 #[tauri::command]
 fn create_task(payload: TaskData, db: State<db::Database>) -> Result<Task, String> {
-  
-  // Parse ISO 8601 datetime string
-  let created_at = payload.created_at.parse::<chrono::DateTime<Utc>>()
-    .map_err(|e| format!("Invalid datetime format: {}", e))?;
-  
-  // Use the global database connection
-  let conn = db.get_connection();
-
-  let task = Task::new(&payload.title, created_at, None);
-  insert(&conn, &task).map_err(|e| format!("Failed to insert task: {}", e))?;
-  
-  Ok(task)
+  task_service::create_task(payload, &db)
 }
 
 #[tauri::command]
 fn get_tasks_by_date(payload: DateQuery, db: State<db::Database>) -> Result<Vec<Task>, String> {
-  let (start_of_day, end_of_day) = parse_date_range(&payload.date)?;
-  
-  let sql = include_str!("../db/sql/get_tasks_by_date.sql");
-  let conn = db.get_connection();
-  let tasks = db::query_tasks_by_date_range(&conn, start_of_day, end_of_day, sql)
-    .map_err(|e| format!("Failed to query tasks: {}", e))?;
-  
-  Ok(tasks)
+  task_service::get_tasks_by_date(payload, &db)
 }
 
 #[tauri::command]
 fn get_tasks_by_date_not_completed(payload: DateQuery, db: State<db::Database>) -> Result<Vec<Task>, String> {
-  let (start_of_day, end_of_day) = parse_date_range(&payload.date)?;
-  
-  let sql = include_str!("../db/sql/get_tasks_by_date_not_completed.sql");
-  let conn = db.get_connection();
-  let tasks = db::query_tasks_by_date_range(&conn, start_of_day, end_of_day, sql)
-    .map_err(|e| format!("Failed to query tasks: {}", e))?;
-  
-  Ok(tasks)
+  task_service::get_tasks_by_date_not_completed(payload, &db)
 }
 
 #[tauri::command]
 fn start_task(payload: TaskId, db: State<db::Database>) -> Result<Task, String> {
-  let conn = db.get_connection();
-  
-  db::update_task_status(&conn, &payload.id, structs::task_struct::Status::Ongoing)
-    .map_err(|e| format!("Failed to start task: {}", e))
+  task_service::start_task(payload, &db)
 }
 
 #[tauri::command]
 fn pause_task(payload: TaskId, db: State<db::Database>) -> Result<Task, String> {
-  let conn = db.get_connection();
-  
-  db::update_task_status(&conn, &payload.id, structs::task_struct::Status::Paused)
-    .map_err(|e| format!("Failed to pause task: {}", e))
+  task_service::pause_task(payload, &db)
 }
 
 #[tauri::command]
 fn resume_task(payload: TaskId, db: State<db::Database>) -> Result<Task, String> {
-  let conn = db.get_connection();
-  
-  db::update_task_status(&conn, &payload.id, structs::task_struct::Status::Ongoing)
-    .map_err(|e| format!("Failed to resume task: {}", e))
+  task_service::resume_task(payload, &db)
 }
 
 #[tauri::command]
 fn complete_task(payload: TaskId, db: State<db::Database>) -> Result<Task, String> {
-  let conn = db.get_connection();
-  
-  db::update_task_status(&conn, &payload.id, structs::task_struct::Status::Completed)
-    .map_err(|e| format!("Failed to complete task: {}", e))
+  task_service::complete_task(payload, &db)
 }
 
 #[tauri::command]
 fn delete_task(payload: TaskId, db: State<db::Database>) -> Result<(), String> {
-  let conn = db.get_connection();
-  
-  let deleted = db::delete_task_by_id(&conn, &payload.id)
-    .map_err(|e| format!("Failed to delete task: {}", e))?;
-  
-  if deleted == 0 {
-    return Err("Task not found".to_string());
-  }
-  
-  Ok(())
+  task_service::delete_task(payload, &db)
+}
+
+#[tauri::command]
+fn get_task_by_id(payload: TaskId, db: State<db::Database>) -> Result<Task, String> {
+  task_service::get_task_by_id(payload, &db)
+}
+
+#[tauri::command]
+fn update_task(payload: TaskUpdate, db: State<db::Database>) -> Result<Task, String> {
+  task_service::update_task(payload, &db)
 }
 
 fn main() {
@@ -134,7 +79,18 @@ fn main() {
         }
       }
     })
-    .invoke_handler(tauri::generate_handler![create_task, get_tasks_by_date, start_task, pause_task, resume_task, complete_task, delete_task])
+    .invoke_handler(tauri::generate_handler![
+      create_task, 
+      get_tasks_by_date, 
+      get_tasks_by_date_not_completed, 
+      start_task, 
+      pause_task, 
+      resume_task, 
+      complete_task, 
+      delete_task, 
+      get_task_by_id,
+      update_task
+    ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }

@@ -86,3 +86,91 @@ pub fn queryable_derive(input: TokenStream) -> TokenStream {
 
     TokenStream::from(expanded)
 }
+
+#[proc_macro_derive(Updatable, attributes(table_name))]
+pub fn updatable_derive(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let struct_name = input.ident;
+
+    // Get table_name from #[table_name = "tasks"] attribute
+    let mut table_name = struct_name.to_string().to_lowercase();
+    for attr in input.attrs.iter() {
+        if attr.path().is_ident("table_name") {
+            if let syn::Meta::NameValue(nv) = &attr.meta {
+                if let syn::Expr::Lit(expr_lit) = &nv.value {
+                    if let syn::Lit::Str(litstr) = &expr_lit.lit {
+                        table_name = litstr.value();
+                    }
+                }
+            }
+        }
+    }
+
+    // Collect field names and types
+    let fields: Vec<_> = match input.data {
+        Data::Struct(ref data_struct) => match data_struct.fields {
+            Fields::Named(ref fields_named) => {
+                fields_named.named.iter().map(|f| {
+                    let ident = f.ident.as_ref().unwrap();
+                    let ty = &f.ty;
+                    (ident, ty)
+                }).collect()
+            },
+            _ => panic!("Updatable only works on structs with named fields"),
+        },
+        _ => panic!("Updatable only works on structs"),
+    };
+
+    let field_pushes = fields.iter().map(|(field_ident, field_ty)| {
+        let field_name = LitStr::new(&field_ident.to_string(), field_ident.span());
+        
+        // Check if the type is Option<Option<T>> (nested option for nullable fields)  
+        let ty_str = quote!(#field_ty).to_string();
+        let is_option = ty_str.starts_with("Option");
+        let is_nested_option = is_option && ty_str.matches("Option").count() >= 2;
+        
+        if is_nested_option {
+            // Handle Option<Option<T>> - for nullable fields
+            quote! {
+                if let Some(ref val) = self.#field_ident {
+                    match val {
+                        Some(v) => cols.push((#field_name, v as &dyn rusqlite::ToSql)),
+                        None => cols.push((#field_name, &rusqlite::types::Null as &dyn rusqlite::ToSql)),
+                    }
+                }
+            }
+        } else if is_option {
+            // Handle regular Option<T>
+            quote! {
+                if let Some(ref val) = self.#field_ident {
+                    cols.push((#field_name, val as &dyn rusqlite::ToSql));
+                }
+            }
+        } else {
+            // Handle direct field (non-Option) - always include
+            quote! {
+                cols.push((#field_name, &self.#field_ident as &dyn rusqlite::ToSql));
+            }
+        }
+    });
+
+    let expanded = quote! {
+        impl crate::db::Updatable for #struct_name {
+            fn table_name() -> &'static str {
+                #table_name
+            }
+
+            fn update_columns_values(&self) -> Vec<(&'static str, &dyn rusqlite::ToSql)> {
+                let mut cols: Vec<(&'static str, &dyn rusqlite::ToSql)> = Vec::new();
+                
+                #(
+                    #field_pushes
+                )*
+                
+                cols
+            }
+        }
+    };
+
+    TokenStream::from(expanded)
+}

@@ -13,6 +13,12 @@ pub trait Insertable {
     fn columns_values(&self) -> Vec<(&'static str, &dyn rusqlite::ToSql)>;
 }
 
+// Trait for types that can update database records
+pub trait Updatable {
+    fn table_name() -> &'static str;
+    fn update_columns_values(&self) -> Vec<(&'static str, &dyn rusqlite::ToSql)>;
+}
+
 // Global database connection wrapped in Mutex for thread safety
 pub struct Database {
     conn: Mutex<Connection>,
@@ -151,13 +157,73 @@ pub fn delete_task_by_id(
     Ok(rows_affected)
 }
 
+// Get a single task by ID
+pub fn get_task_by_id(
+    conn: &rusqlite::Connection,
+    task_id: &str,
+) -> rusqlite::Result<crate::structs::task_struct::Task> {
+    use crate::structs::task_struct::Task;
+    
+    let uuid = Uuid::parse_str(task_id)
+        .map_err(|e| rusqlite::Error::InvalidParameterName(format!("Invalid UUID: {}", e)))?;
+    
+    let sql = include_str!("../db/sql/get_task_by_id.sql");
+    
+    conn.query_row(sql, [&uuid], |row| Task::from_row(row))
+}
+
+// Update task fields
+pub fn update_task<T: Updatable>(
+    conn: &rusqlite::Connection,
+    task_id: &str,
+    update_data: &T,
+) -> rusqlite::Result<crate::structs::task_struct::Task> {
+    let uuid = Uuid::parse_str(task_id)
+        .map_err(|e| rusqlite::Error::InvalidParameterName(format!("Invalid UUID: {}", e)))?;
+    
+    let cols_vals = update_data.update_columns_values();
+    
+    if cols_vals.is_empty() {
+        // No fields to update, just return the current task
+        return get_task_by_id(conn, task_id);
+    }
+    
+    let set_clauses: Vec<String> = cols_vals.iter()
+        .map(|(col, _)| format!("{} = ?", col))
+        .collect();
+    let values: Vec<&dyn rusqlite::ToSql> = cols_vals.iter()
+        .map(|(_, v)| *v)
+        .collect();
+    
+    let sql = format!(
+        "UPDATE {} SET {} WHERE id = ?",
+        T::table_name(),
+        set_clauses.join(", ")
+    );
+    
+    let mut params = values;
+    params.push(&uuid);
+    
+    let rows_affected = conn.execute(&sql, &params[..]).map_err(|e| {
+        eprintln!("Failed to update task with ID {}: {}", task_id, e);
+        eprintln!("SQL: {}", sql);
+        e
+    })?;
+    
+    if rows_affected == 0 {
+        Err(rusqlite::Error::QueryReturnedNoRows)
+    } else {
+        get_task_by_id(conn, task_id)
+    }
+}
+
 // Handles: start, pause, resume, complete transitions
 pub fn update_task_status(
     conn: &rusqlite::Connection,
     task_id: &str,
     new_status: crate::structs::task_struct::Status,
 ) -> rusqlite::Result<crate::structs::task_struct::Task> {
-    use crate::structs::task_struct::{Task, Status};
+    use crate::structs::task_struct::Status;
     
     let uuid = Uuid::parse_str(task_id)
         .map_err(|e| rusqlite::Error::InvalidParameterName(format!("Invalid UUID: {}", e)))?;
@@ -186,7 +252,5 @@ pub fn update_task_status(
     }
     
     // Fetch and return the updated task
-    let fetch_sql = include_str!("../db/sql/get_task_by_id.sql");
-    
-    conn.query_row(fetch_sql, [&uuid], |row| Task::from_row(row))
+    get_task_by_id(conn, task_id)
 }
