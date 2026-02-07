@@ -189,7 +189,16 @@ export const TaskEditModal = ({
                   <Calendar
                     mode="single"
                     selected={formData.deadline}
-                    onSelect={(date) => updateField('deadline', date)}
+                    onSelect={(date) => {
+                      if (date) {
+                        // Set time to end of day (23:59:59)
+                        const endOfDay = new Date(date);
+                        endOfDay.setHours(23, 59, 59, 999);
+                        updateField('deadline', endOfDay);
+                      } else {
+                        updateField('deadline', date);
+                      }
+                    }}
                     initialFocus
                     className="p-3 pointer-events-auto"
                   />

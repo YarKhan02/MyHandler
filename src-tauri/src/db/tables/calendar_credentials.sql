@@ -1,7 +1,6 @@
 -- Calendar OAuth credentials (single row)
-DROP TABLE IF EXISTS calendar_credentials;
 
-CREATE TABLE calendar_credentials (
+CREATE TABLE IF NOT EXISTS calendar_credentials (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     email VARCHAR(255) NOT NULL,
     access_token TEXT NOT NULL,

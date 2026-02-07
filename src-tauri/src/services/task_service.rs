@@ -1,9 +1,9 @@
 use chrono::Utc;
+use crate::services::calendar_service;
 use crate::db::{self, Database, insert};
-use crate::structs::dto::{TaskData, DateQuery, TaskId};
 use crate::structs::task_struct::{Task, Status};
 use crate::helpers::parse_date::parse_date_range;
-use crate::services::calendar_service;
+use crate::structs::dto::{TaskData, DateQuery, TaskId};
 
 pub fn create_task(payload: TaskData, db: &Database) -> Result<Task, String> {
     // Parse ISO 8601 datetime string
@@ -49,35 +49,131 @@ pub fn start_task(payload: TaskId, db: &Database) -> Result<Task, String> {
 }
 
 pub fn pause_task(payload: TaskId, db: &Database) -> Result<Task, String> {
-    let conn = db.get_connection();
+    let (task, event_id) = {
+        let conn = db.get_connection();
+        
+        let task = db::update_task_status(&conn, &payload.id, Status::Paused)
+            .map_err(|e| format!("Failed to pause task: {}", e))?;
+        
+        let event_id = db::get_task_google_event_id(&conn, &payload.id)
+            .map_err(|e| format!("Failed to get calendar event: {}", e))?;
+        
+        (task, event_id)
+    }; // DB lock released here
     
-    db::update_task_status(&conn, &payload.id, Status::Paused)
-        .map_err(|e| format!("Failed to pause task: {}", e))
+    // If task has calendar event and deadline, remove reminders (pause alarms)
+    if let Some(event_id) = event_id {
+        if let Some(deadline) = task.deadline {
+            println!("Pausing calendar reminders for task: {}", task.id);
+            match tokio::runtime::Runtime::new()
+                .map_err(|e| format!("Failed to create runtime: {}", e))?
+                .block_on(calendar_service::update_task_calendar_event(
+                    db,
+                    &event_id,
+                    &task.title,
+                    task.notes.as_deref(),
+                    deadline,
+                    "", // Empty reminder_frequency to remove all reminders
+                )) {
+                Ok(_) => println!("Calendar reminders paused"),
+                Err(e) if e == "EVENT_NOT_FOUND" => {
+                    println!("Calendar event was deleted externally, clearing from database");
+                    let conn = db.get_connection();
+                    let _ = db::clear_task_google_event_id(&conn, &payload.id);
+                }
+                Err(e) => eprintln!("Warning: Failed to pause calendar reminders: {}", e),
+            }
+        }
+    }
+    
+    Ok(task)
 }
 
 pub fn resume_task(payload: TaskId, db: &Database) -> Result<Task, String> {
-    let conn = db.get_connection();
+    let (task, event_id) = {
+        let conn = db.get_connection();
+        
+        let task = db::update_task_status(&conn, &payload.id, Status::Ongoing)
+            .map_err(|e| format!("Failed to resume task: {}", e))?;
+        
+        let event_id = db::get_task_google_event_id(&conn, &payload.id)
+            .map_err(|e| format!("Failed to get calendar event: {}", e))?;
+        
+        (task, event_id)
+    }; // DB lock released here
     
-    db::update_task_status(&conn, &payload.id, Status::Ongoing)
-        .map_err(|e| format!("Failed to resume task: {}", e))
+    // If task has calendar event and deadline, restore reminders
+    if let Some(event_id) = event_id {
+        if let Some(deadline) = task.deadline {
+            println!("Resuming calendar reminders for task: {}", task.id);
+            let reminder_freq_str = String::from(task.reminder_frequency.clone());
+            match tokio::runtime::Runtime::new()
+                .map_err(|e| format!("Failed to create runtime: {}", e))?
+                .block_on(calendar_service::update_task_calendar_event(
+                    db,
+                    &event_id,
+                    &task.title,
+                    task.notes.as_deref(),
+                    deadline,
+                    &reminder_freq_str, // Restore reminders from task settings
+                )) {
+                Ok(_) => println!("Calendar reminders resumed"),
+                Err(e) if e == "EVENT_NOT_FOUND" => {
+                    println!("Calendar event was deleted externally, clearing from database");
+                    let conn = db.get_connection();
+                    let _ = db::clear_task_google_event_id(&conn, &payload.id);
+                }
+                Err(e) => eprintln!("Warning: Failed to resume calendar reminders: {}", e),
+            }
+        }
+    }
+    
+    Ok(task)
 }
 
 pub fn complete_task(payload: TaskId, db: &Database) -> Result<Task, String> {
-    let conn = db.get_connection();
+    let (task, event_id) = {
+        let conn = db.get_connection();
+        
+        let task = db::update_task_status(&conn, &payload.id, Status::Completed)
+            .map_err(|e| format!("Failed to complete task: {}", e))?;
+        
+        let event_id = db::get_task_google_event_id(&conn, &payload.id)
+            .map_err(|e| format!("Failed to get calendar event: {}", e))?;
+        
+        (task, event_id)
+    }; // DB lock released here
     
-    db::update_task_status(&conn, &payload.id, Status::Completed)
-        .map_err(|e| format!("Failed to complete task: {}", e))
+    // If task has calendar event, delete it (task is completed)
+    if let Some(event_id) = event_id {
+        println!("Deleting calendar event for completed task: {}", task.id);
+        if let Err(e) = tokio::runtime::Runtime::new()
+            .map_err(|e| format!("Failed to create runtime: {}", e))?
+            .block_on(calendar_service::delete_task_calendar_event(db, &event_id)) 
+        {
+            eprintln!("Warning: Failed to delete calendar event: {}", e);
+        } else {
+            // Clear event ID from database
+            let conn = db.get_connection();
+            let _ = db::clear_task_google_event_id(&conn, &payload.id);
+        }
+    }
+    
+    Ok(task)
 }
 
 pub fn delete_task(payload: TaskId, db: &Database) -> Result<(), String> {
-    let conn = db.get_connection();
-    
-    // Get calendar event ID if exists
-    let event_id = db::get_task_google_event_id(&conn, &payload.id)
-        .map_err(|e| format!("Failed to get calendar event: {}", e))?;
+    // Scope 1: Get calendar event ID and release lock
+    let event_id = {
+        let conn = db.get_connection();
+        
+        db::get_task_google_event_id(&conn, &payload.id)
+            .map_err(|e| format!("Failed to get calendar event: {}", e))?
+    }; // DB lock released here
     
     // Delete calendar event from Google if exists
     if let Some(event_id) = event_id {
+        println!("Deleting calendar event: {}", event_id);
         if let Err(e) = tokio::runtime::Runtime::new()
             .map_err(|e| format!("Failed to create runtime: {}", e))?
             .block_on(calendar_service::delete_task_calendar_event(db, &event_id)) 
@@ -86,9 +182,12 @@ pub fn delete_task(payload: TaskId, db: &Database) -> Result<(), String> {
         }
     }
     
-    // Delete from database (calendar_events will cascade delete)
-    let deleted = db::delete_task_by_id(&conn, &payload.id)
-        .map_err(|e| format!("Failed to delete task: {}", e))?;
+    // Scope 2: Delete from database (get fresh connection)
+    let deleted = {
+        let conn = db.get_connection();
+        db::delete_task_by_id(&conn, &payload.id)
+            .map_err(|e| format!("Failed to delete task: {}", e))?
+    };
     
     if deleted == 0 {
         Err("Task not found".to_string())
@@ -110,7 +209,7 @@ pub async fn update_task(payload: crate::structs::task_update::TaskUpdate, db: &
     println!("Updating task: {:?}", payload.id);
     
     // Scope 1: Get current state and update task in DB
-    let (current_task, current_event_id, updated_task, calendar_enabled, new_deadline, reminder_freq_for_event) = {
+    let (_current_task, current_event_id, updated_task, calendar_enabled, new_deadline, reminder_freq_for_event) = {
         let conn = db.get_connection();
         
         // Get current task and calendar event
@@ -179,9 +278,9 @@ pub async fn update_task(payload: crate::structs::task_update::TaskUpdate, db: &
     
     if calendar_enabled && new_deadline.is_some() {
         if let Some(existing_event_id) = current_event_id {
-            // Event already exists, UPDATE it
+            // Event already exists, try to UPDATE it
             println!("Updating existing calendar event: {}", existing_event_id);
-            if let Err(e) = calendar_service::update_task_calendar_event(
+            match calendar_service::update_task_calendar_event(
                 db,
                 &existing_event_id,
                 &updated_task.title,
@@ -189,9 +288,18 @@ pub async fn update_task(payload: crate::structs::task_update::TaskUpdate, db: &
                 new_deadline.unwrap(),
                 &reminder_freq_for_event,
             ).await {
-                eprintln!("Warning: Failed to update calendar event: {}", e);
-            } else {
-                println!("Calendar event updated successfully");
+                Ok(_) => {
+                    println!("Calendar event updated successfully");
+                }
+                Err(e) if e == "EVENT_NOT_FOUND" => {
+                    // Event was deleted externally, clear it from database to stay in sync
+                    println!("Calendar event was deleted externally, clearing from database");
+                    let conn = db.get_connection();
+                    let _ = db::clear_task_google_event_id(&conn, &payload.id);
+                }
+                Err(e) => {
+                    eprintln!("Warning: Failed to update calendar event: {}", e);
+                }
             }
         } else {
             // No event exists, CREATE new one

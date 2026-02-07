@@ -1,7 +1,4 @@
--- Drop existing settings table if exists (for development)
-DROP TABLE IF EXISTS settings;
 
--- Settings table for user preferences
 -- Single row table (id always = 1) for desktop app settings
 CREATE TABLE IF NOT EXISTS settings (
     id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -16,5 +13,5 @@ CREATE TABLE IF NOT EXISTS settings (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Insert default settings row
-INSERT INTO settings (id) VALUES (1);
+-- Insert default settings row (ignore if already exists)
+INSERT OR IGNORE INTO settings (id) VALUES (1);

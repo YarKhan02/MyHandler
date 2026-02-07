@@ -1,7 +1,6 @@
 -- Calendar events table - links tasks to Google Calendar events
-DROP TABLE IF EXISTS calendar_events;
 
-CREATE TABLE calendar_events (
+CREATE TABLE IF NOT EXISTS calendar_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     task_id BLOB NOT NULL,
     google_event_id VARCHAR(255) NOT NULL UNIQUE,

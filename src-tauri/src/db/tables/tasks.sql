@@ -1,7 +1,5 @@
--- Drop existing table to allow schema migration (development only)
-DROP TABLE IF EXISTS tasks;
-
-CREATE TABLE tasks (
+-- Tasks table - main table for storing task information        
+CREATE TABLE IF NOT EXISTS tasks (
     id BLOB PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     notes TEXT,
