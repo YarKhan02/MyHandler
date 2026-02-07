@@ -51,6 +51,6 @@ pub fn get_task_by_id(payload: TaskId, db: State<db::Database>) -> Result<Task, 
 }
 
 #[tauri::command]
-pub fn update_task(payload: TaskUpdate, db: State<db::Database>) -> Result<Task, String> {
-  task_service::update_task(payload, &db)
+pub async fn update_task(payload: TaskUpdate, db: State<'_, db::Database>) -> Result<Task, String> {
+  task_service::update_task(payload, &db).await
 }

@@ -28,6 +28,7 @@ import {
 import { format } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { tauriCommands } from '@/lib/tauri';
 
 interface TaskEditModalProps {
   task: Task | null;
@@ -58,6 +59,31 @@ export const TaskEditModal = ({
     calendarEmail: '',
     reminderFrequency: 'none',
   });
+  const [calendarConnected, setCalendarConnected] = useState(false);
+  const [connectedEmail, setConnectedEmail] = useState<string>('');
+
+  // Check calendar connection status
+  useEffect(() => {
+    const checkCalendarStatus = async () => {
+      try {
+        const status = await tauriCommands.getCalendarStatus();
+        if (status) {
+          setCalendarConnected(true);
+          setConnectedEmail(status.email);
+        } else {
+          setCalendarConnected(false);
+          setConnectedEmail('');
+        }
+      } catch (error) {
+        console.error('Failed to get calendar status:', error);
+        setCalendarConnected(false);
+      }
+    };
+
+    if (isOpen) {
+      checkCalendarStatus();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (task) {
@@ -67,15 +93,27 @@ export const TaskEditModal = ({
         hasDeadline: !!task.deadline,
         deadline: task.deadline,
         hasCalendarIntegration: task.hasCalendarIntegration,
-        calendarEmail: task.calendarEmail || '',
+        calendarEmail: task.calendarEmail || connectedEmail,
         reminderFrequency: task.reminderFrequency,
       });
     }
-  }, [task]);
+  }, [task, connectedEmail]);
 
   const handleSave = () => {
     if (!task || !formData.title.trim()) return;
-    onSave(task.id, formData);
+    
+    // If calendar integration is enabled, ensure deadline is set
+    if (formData.hasCalendarIntegration && !formData.deadline) {
+      return; // Don't save - deadline is required for calendar integration
+    }
+    
+    // Ensure calendar email is set if integration is enabled
+    const saveData = {
+      ...formData,
+      calendarEmail: formData.hasCalendarIntegration ? connectedEmail : undefined,
+    };
+    
+    onSave(task.id, saveData);
     onClose();
   };
 
@@ -167,19 +205,36 @@ export const TaskEditModal = ({
               <Switch
                 id="calendar-toggle"
                 checked={formData.hasCalendarIntegration}
-                onCheckedChange={(checked) =>
-                  updateField('hasCalendarIntegration', checked)
-                }
+                onCheckedChange={(checked) => {
+                  if (!calendarConnected && checked) {
+                    return; // Don't allow enabling if not connected
+                  }
+                  updateField('hasCalendarIntegration', checked);
+                  if (checked && connectedEmail) {
+                    updateField('calendarEmail', connectedEmail);
+                  }
+                }}
+                disabled={!calendarConnected}
               />
             </div>
 
-            {formData.hasCalendarIntegration && (
-              <Input
-                value={formData.calendarEmail}
-                onChange={(e) => updateField('calendarEmail', e.target.value)}
-                placeholder="Email account (future feature)"
-                disabled
-              />
+            {!calendarConnected && (
+              <p className="text-xs text-muted-foreground">
+                Connect your calendar in Settings to enable this feature.
+              </p>
+            )}
+
+            {calendarConnected && formData.hasCalendarIntegration && (
+              <div className="space-y-2">
+                <Input
+                  value={connectedEmail}
+                  disabled
+                  className="bg-muted"
+                />
+                <p className="text-xs text-muted-foreground">
+                  This task will sync with your Google Calendar.
+                </p>
+              </div>
             )}
           </div>
 
@@ -210,7 +265,13 @@ export const TaskEditModal = ({
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={!formData.title.trim()}>
+          <Button 
+            onClick={handleSave} 
+            disabled={
+              !formData.title.trim() || 
+              (formData.hasCalendarIntegration && !formData.deadline)
+            }
+          >
             Save
           </Button>
         </DialogFooter>

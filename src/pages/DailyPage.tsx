@@ -150,10 +150,11 @@ const DailyPage = () => {
         title: 'Task updated',
         description: 'Your changes have been saved.',
       });
-    } catch {
+    } catch (error) {
+      console.error('Failed to update task:', error);
       toast({
         title: 'Error',
-        description: 'Failed to update task.',
+        description: error instanceof Error ? error.message : 'Failed to update task.',
         variant: 'destructive',
       });
     }

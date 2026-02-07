@@ -41,10 +41,10 @@ pub async fn start_oauth_flow() -> Result<CalendarCredentials, String> {
     
     let auth_url = format!(
         "{}?client_id={}&redirect_uri={}&response_type=code&scope={}&state={}&access_type=offline&prompt=consent",
-        env::var("GOOGLE_AUTH_URL").unwrap_or_else(|_| GOOGLE_AUTH_URL.to_string()),
-        urlencoding::encode(&env::var("CLIENT_ID").unwrap_or_else(|_| CLIENT_ID.to_string())),
-        urlencoding::encode(&env::var("REDIRECT_URI").unwrap_or_else(|_| REDIRECT_URI.to_string())),
-        urlencoding::encode(&env::var("SCOPES").unwrap_or_else(|_| SCOPES.to_string())),
+        env::var("GOOGLE_AUTH_URL").map_err(|_| "GOOGLE_AUTH_URL not set in .env")?,
+        urlencoding::encode(&env::var("CLIENT_ID").map_err(|_| "CLIENT_ID not set in .env")?),
+        urlencoding::encode(&env::var("REDIRECT_URI").map_err(|_| "REDIRECT_URI not set in .env")?),
+        urlencoding::encode(&env::var("SCOPES").map_err(|_| "SCOPES not set in .env")?),
         state
     );
     
@@ -133,18 +133,21 @@ pub async fn start_oauth_flow() -> Result<CalendarCredentials, String> {
 }
 
 async fn exchange_code_for_tokens(code: &str) -> Result<CalendarCredentials, String> {
-    let client = Client::new();
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
     
     let params = [
-        ("client_id", &env::var("CLIENT_ID").unwrap_or_else(|_| CLIENT_ID.to_string())),
-        ("client_secret", &env::var("CLIENT_SECRET").unwrap_or_else(|_| CLIENT_SECRET.to_string())),
-        ("code", code),
-        ("grant_type", "authorization_code"),
-        ("redirect_uri", &env::var("REDIRECT_URI").unwrap_or_else(|_| REDIRECT_URI.to_string())),
+        ("client_id", &env::var("CLIENT_ID").map_err(|_| "CLIENT_ID not set in .env")?),
+        ("client_secret", &env::var("CLIENT_SECRET").map_err(|_| "CLIENT_SECRET not set in .env")?),
+        ("code", &code.to_string()),
+        ("grant_type", &"authorization_code".to_string()),
+        ("redirect_uri", &env::var("REDIRECT_URI").map_err(|_| "REDIRECT_URI not set in .env")?),
     ];
     
     let response = client
-        .post(&env::var("GOOGLE_TOKEN_URL").unwrap_or_else(|_| GOOGLE_TOKEN_URL.to_string()))
+        .post(&env::var("GOOGLE_TOKEN_URL").map_err(|_| "GOOGLE_TOKEN_URL not set in .env")?)
         .form(&params)
         .send()
         .await
@@ -179,7 +182,10 @@ async fn exchange_code_for_tokens(code: &str) -> Result<CalendarCredentials, Str
 }
 
 async fn get_user_email(access_token: &str) -> Result<String, String> {
-    let client = Client::new();
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
     
     let response = client
         .get("https://www.googleapis.com/oauth2/v2/userinfo")
@@ -201,17 +207,21 @@ async fn get_user_email(access_token: &str) -> Result<String, String> {
 }
 
 pub async fn refresh_access_token(refresh_token: &str) -> Result<(String, i64), String> {
-    let client = Client::new();
+    println!("Refreshing access token...");
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
     
     let params = [
-        ("client_id", &env::var("CLIENT_ID").unwrap_or_else(|_| CLIENT_ID.to_string())),
-        ("client_secret", &env::var("CLIENT_SECRET").unwrap_or_else(|_| CLIENT_SECRET.to_string())),
-        ("refresh_token", refresh_token),
-        ("grant_type", "refresh_token"),
+        ("client_id", &env::var("CLIENT_ID").map_err(|_| "CLIENT_ID not set in .env")?),
+        ("client_secret", &env::var("CLIENT_SECRET").map_err(|_| "CLIENT_SECRET not set in .env")?),
+        ("refresh_token", &refresh_token.to_string()),
+        ("grant_type", &"refresh_token".to_string()),
     ];
     
     let response = client
-        .post(&env::var("GOOGLE_TOKEN_URL").unwrap_or_else(|_| GOOGLE_TOKEN_URL.to_string()))
+        .post(&env::var("GOOGLE_TOKEN_URL").map_err(|_| "GOOGLE_TOKEN_URL not set in .env")?)
         .form(&params)
         .send()
         .await
@@ -228,5 +238,6 @@ pub async fn refresh_access_token(refresh_token: &str) -> Result<(String, i64), 
         .await
         .map_err(|e| format!("Failed to parse refresh response: {}", e))?;
     
+    println!("Token refreshed successfully");
     Ok((token_data.access_token, token_data.expires_in))
 }

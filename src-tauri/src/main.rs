@@ -9,7 +9,6 @@ mod services;
 mod commands;
 mod thirdparty;
 
-use dotenv::dotenv;
 use commands::{
   create_task, 
   get_tasks_by_date, 
@@ -29,6 +28,9 @@ use commands::{
 };
 
 fn main() {
+  // Load environment variables from .env file
+  dotenv::dotenv().ok();
+  
   tauri::Builder::default()
     .setup(|app| {
       match db::init_db(&app.handle()) {

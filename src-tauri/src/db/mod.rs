@@ -43,8 +43,12 @@ impl Database {
     }
 
     pub fn get_connection(&self) -> std::sync::MutexGuard<'_, Connection> {
+        println!("Attempting to acquire database lock...");
         match self.conn.lock() {
-            Ok(guard) => guard,
+            Ok(guard) => {
+                println!("Database lock acquired successfully");
+                guard
+            }
             Err(poisoned) => {
                 eprintln!("Database mutex poisoned, recovering...");
                 poisoned.into_inner()
@@ -81,6 +85,7 @@ pub fn init_db(app: &AppHandle) -> DbResult<()> {
         ("tasks", include_str!("../db/tables/tasks.sql")),
         ("settings", include_str!("../db/tables/settings.sql")),
         ("calendar_credentials", include_str!("../db/tables/calendar_credentials.sql")),
+        ("calendar_events", include_str!("../db/tables/calendar_events.sql")),
     ];
 
     for (table_name, sql) in table_sql_files {
@@ -340,13 +345,18 @@ pub fn get_calendar_credentials(
 ) -> rusqlite::Result<Option<crate::structs::calendar::CalendarCredentials>> {
     use crate::structs::calendar::CalendarCredentials;
     
+    println!("get_calendar_credentials: Loading SQL...");
     let sql = include_str!("../db/sql/get_calendar_credentials.sql");
+    println!("get_calendar_credentials: SQL loaded, executing query...");
     
     let result = conn.query_row(sql, [], |row| {
+        println!("get_calendar_credentials: Processing row...");
         let email: String = row.get(0)?;
         let access_token: String = row.get(1)?;
         let refresh_token: String = row.get(2)?;
         let token_expiry: chrono::DateTime<chrono::Utc> = row.get(3)?;
+        
+        println!("get_calendar_credentials: Row data retrieved");
         
         // Check if credentials are actually set (not empty placeholder)
         if email.is_empty() || access_token.is_empty() {
@@ -361,10 +371,21 @@ pub fn get_calendar_credentials(
         })
     });
     
+    println!("get_calendar_credentials: Query executed, processing result...");
+    
     match result {
-        Ok(creds) => Ok(Some(creds)),
-        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-        Err(e) => Err(e),
+        Ok(creds) => {
+            println!("get_calendar_credentials: Credentials found");
+            Ok(Some(creds))
+        }
+        Err(rusqlite::Error::QueryReturnedNoRows) => {
+            println!("get_calendar_credentials: No credentials found (empty table)");
+            Ok(None)
+        }
+        Err(e) => {
+            eprintln!("get_calendar_credentials: Error occurred: {}", e);
+            Err(e)
+        }
     }
 }
 
@@ -377,5 +398,63 @@ pub fn clear_calendar_credentials(conn: &rusqlite::Connection) -> rusqlite::Resu
     let disable_sql = include_str!("../db/sql/disable_calendar_integration.sql");
     conn.execute(disable_sql, [])?;
     
+    // Clear all calendar events
+    clear_all_calendar_events(conn)?;
+    
+    Ok(())
+}
+// Update google_event_id for a task
+pub fn update_task_google_event_id(
+    conn: &rusqlite::Connection,
+    task_id: &str,
+    event_id: &str,
+) -> rusqlite::Result<()> {
+    let uuid = Uuid::parse_str(task_id)
+        .map_err(|e| rusqlite::Error::InvalidParameterName(format!("Invalid UUID: {}", e)))?;
+    
+    let sql = include_str!("../db/sql/upsert_calendar_event.sql");
+    conn.execute(sql, rusqlite::params![&uuid, event_id])?;
+    
+    Ok(())
+}
+
+// Clear google_event_id for a task
+pub fn clear_task_google_event_id(
+    conn: &rusqlite::Connection,
+    task_id: &str,
+) -> rusqlite::Result<()> {
+    let uuid = Uuid::parse_str(task_id)
+        .map_err(|e| rusqlite::Error::InvalidParameterName(format!("Invalid UUID: {}", e)))?;
+    
+    let sql = include_str!("../db/sql/delete_calendar_event_by_task.sql");
+    conn.execute(sql, rusqlite::params![&uuid])?;
+    
+    Ok(())
+}
+
+// Get google_event_id for a task
+pub fn get_task_google_event_id(
+    conn: &rusqlite::Connection,
+    task_id: &str,
+) -> rusqlite::Result<Option<String>> {
+    let uuid = Uuid::parse_str(task_id)
+        .map_err(|e| rusqlite::Error::InvalidParameterName(format!("Invalid UUID: {}", e)))?;
+    
+    let sql = include_str!("../db/sql/get_calendar_event_by_task.sql");
+    let result = conn.query_row(sql, rusqlite::params![&uuid], |row| row.get(0));
+    
+    match result {
+        Ok(event_id) => Ok(Some(event_id)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(e),
+    }
+}
+
+// Clear all calendar events (when disconnecting calendar)
+pub fn clear_all_calendar_events(
+    conn: &rusqlite::Connection,
+) -> rusqlite::Result<()> {
+    let sql = include_str!("../db/sql/clear_all_calendar_events.sql");
+    conn.execute(sql, [])?;
     Ok(())
 }

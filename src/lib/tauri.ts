@@ -34,15 +34,21 @@ export const tauriCommands = {
 
   // Update an existing task
   updateTask: async (id: string, data: Partial<TaskFormData>): Promise<Task> => {
-    const result = await invoke('update_task', { 
-      payload: {
-        id,
-        data: {
-          ...data,
-          deadline: data.deadline?.toISOString(),
-        }
+    const payload = {
+      id,
+      data: {
+        title: data.title,
+        notes: data.notes,
+        deadline: data.deadline?.toISOString(),
+        hasCalendarIntegration: data.hasCalendarIntegration,
+        calendarEmail: data.calendarEmail,
+        reminderFrequency: data.reminderFrequency,
       }
-    });
+    };
+    
+    console.log('Updating task:', payload);
+    
+    const result = await invoke('update_task', { payload });
     return parseTask(result);
   },
 
