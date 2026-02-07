@@ -1,10 +1,17 @@
 use crate::structs::calendar::CalendarCredentials;
 use chrono::{Duration, Utc};
-use std::env;
 use reqwest::Client;
 use serde::Deserialize;
 use std::sync::{Arc, Mutex};
 use tiny_http::{Server, Response};
+
+// OAuth Configuration - Replace these with your Google Cloud credentials
+const CLIENT_ID: &str = "YOUR_CLIENT_ID.apps.googleusercontent.com";
+const CLIENT_SECRET: &str = "YOUR_CLIENT_SECRET";
+const REDIRECT_URI: &str = "http://localhost:3333/oauth/callback";
+const GOOGLE_AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
+const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
+const SCOPES: &str = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/userinfo.email";
 
 // Load HTML templates at compile time
 const SUCCESS_HTML: &str = include_str!("../../oauth_pages/success.html");
@@ -41,10 +48,10 @@ pub async fn start_oauth_flow() -> Result<CalendarCredentials, String> {
     
     let auth_url = format!(
         "{}?client_id={}&redirect_uri={}&response_type=code&scope={}&state={}&access_type=offline&prompt=consent",
-        env::var("GOOGLE_AUTH_URL").map_err(|_| "GOOGLE_AUTH_URL not set in .env")?,
-        urlencoding::encode(&env::var("CLIENT_ID").map_err(|_| "CLIENT_ID not set in .env")?),
-        urlencoding::encode(&env::var("REDIRECT_URI").map_err(|_| "REDIRECT_URI not set in .env")?),
-        urlencoding::encode(&env::var("SCOPES").map_err(|_| "SCOPES not set in .env")?),
+        GOOGLE_AUTH_URL,
+        urlencoding::encode(CLIENT_ID),
+        urlencoding::encode(REDIRECT_URI),
+        urlencoding::encode(SCOPES),
         state
     );
     
@@ -139,15 +146,15 @@ async fn exchange_code_for_tokens(code: &str) -> Result<CalendarCredentials, Str
         .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
     
     let params = [
-        ("client_id", &env::var("CLIENT_ID").map_err(|_| "CLIENT_ID not set in .env")?),
-        ("client_secret", &env::var("CLIENT_SECRET").map_err(|_| "CLIENT_SECRET not set in .env")?),
-        ("code", &code.to_string()),
-        ("grant_type", &"authorization_code".to_string()),
-        ("redirect_uri", &env::var("REDIRECT_URI").map_err(|_| "REDIRECT_URI not set in .env")?),
+        ("client_id", CLIENT_ID),
+        ("client_secret", CLIENT_SECRET),
+        ("code", code),
+        ("grant_type", "authorization_code"),
+        ("redirect_uri", REDIRECT_URI),
     ];
     
     let response = client
-        .post(&env::var("GOOGLE_TOKEN_URL").map_err(|_| "GOOGLE_TOKEN_URL not set in .env")?)
+        .post(GOOGLE_TOKEN_URL)
         .form(&params)
         .send()
         .await
@@ -214,14 +221,14 @@ pub async fn refresh_access_token(refresh_token: &str) -> Result<(String, i64), 
         .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
     
     let params = [
-        ("client_id", &env::var("CLIENT_ID").map_err(|_| "CLIENT_ID not set in .env")?),
-        ("client_secret", &env::var("CLIENT_SECRET").map_err(|_| "CLIENT_SECRET not set in .env")?),
-        ("refresh_token", &refresh_token.to_string()),
-        ("grant_type", &"refresh_token".to_string()),
+        ("client_id", CLIENT_ID),
+        ("client_secret", CLIENT_SECRET),
+        ("refresh_token", refresh_token),
+        ("grant_type", "refresh_token"),
     ];
     
     let response = client
-        .post(&env::var("GOOGLE_TOKEN_URL").map_err(|_| "GOOGLE_TOKEN_URL not set in .env")?)
+        .post(GOOGLE_TOKEN_URL)
         .form(&params)
         .send()
         .await

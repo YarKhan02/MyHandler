@@ -15,14 +15,16 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { tauriCommands } from '@/lib/tauri';
 import type { Settings } from '@/interfaces/settings';
+import { getVersion } from '@tauri-apps/api/app';
 
 const SettingsPage = () => {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
+  const [appVersion, setAppVersion] = useState<string>('');
 
 
-  // Fetch settings on mount
+  // Fetch settings and version on mount
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -35,7 +37,17 @@ const SettingsPage = () => {
       }
     };
 
+    const fetchVersion = async () => {
+      try {
+        const version = await getVersion();
+        setAppVersion(version);
+      } catch (error) {
+        console.error('Failed to fetch version:', error);
+      }
+    };
+
     fetchSettings();
+    fetchVersion();
   }, []);
 
   const updateSetting = async (data: Partial<Settings>) => {
@@ -296,7 +308,7 @@ const SettingsPage = () => {
           {/* Version */}
           <div className="text-center pt-8">
             <p className="text-sm text-muted-foreground">
-              MyHandler v1.0.0
+              MyHandler v{appVersion}
             </p>
           </div>
         </motion.div>
