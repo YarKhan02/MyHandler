@@ -1,5 +1,15 @@
-# Terms of Service
+# Terms of Service for My Handler
 
-My Handler is provided "as is" for personal use.
+Last updated: February 8, 2026
 
-Contact: yarkhan025@gmail.com
+## License
+My Handler is provided "as is" without warranty of any kind.
+
+## Usage
+You are free to use My Handler for personal task management.
+
+## Liability
+We are not liable for any data loss or issues arising from use of this application.
+
+## Contact
+For questions, contact: yarkhan025@gmail.com

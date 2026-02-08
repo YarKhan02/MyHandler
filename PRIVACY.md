@@ -1,8 +1,14 @@
-# Privacy Policy
+# Privacy Policy for My Handler
 
-My Handler stores all data locally. We do not collect personal information.
+Last updated: February 8, 2026
 
-## Google Calendar
-We only access your calendar to sync tasks. Your credentials stay on your device.
+## Data Collection
+My Handler stores all data locally on your device. We do not collect, transmit, or store any personal information on external servers.
 
-Contact: yarkhan025@gmail.com
+## Google Calendar Integration
+When you connect your Google Calendar, we only request permission to:
+- Read your calendar events
+- Create/update/delete calendar events
+
+## Contact
+For questions, contact: yarkhan025@gmail.com
