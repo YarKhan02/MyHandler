@@ -6,8 +6,8 @@ use std::sync::{Arc, Mutex};
 use tiny_http::{Server, Response};
 
 // OAuth Configuration - Replace these with your Google Cloud credentials
-const CLIENT_ID: &str = "YOUR_CLIENT_ID.apps.googleusercontent.com";
-const CLIENT_SECRET: &str = "YOUR_CLIENT_SECRET";
+const CLIENT_ID: &str = "456615259862-pmujk4iqc21hrtk90sljuuavh0i2r03t.apps.googleusercontent.com";
+const CLIENT_SECRET: &str = "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";
 const REDIRECT_URI: &str = "http://localhost:3333/oauth/callback";
 const GOOGLE_AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
