@@ -58,6 +58,6 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: ${{ github.ref_name }}
           releaseBody: "See assets below."
-          draft: false
+          releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
