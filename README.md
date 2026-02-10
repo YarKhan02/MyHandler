@@ -80,13 +80,8 @@ Then reopen the app.
 - **Calendar**: Monthly view of all tasks
 - **Focus**: Single-task mode for deep work
 
-## Development
-
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) (v18+)
-- [Rust](https://www.rust-lang.org/) (latest stable)
-- [Tauri CLI](https://tauri.app/v1/guides/getting-started/prerequisites)
+## App Preview
+![alt text](image.png)
 
 ## Tech Stack
 
